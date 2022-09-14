@@ -1,40 +1,51 @@
 'use strict';
 
 /////////////////////////////////////////////////
-// *BANKIST APP
 
-// Data
+//* DATA
 const account1 = {
-  owner: 'Jonas Schmedtmann',
-  movements: [200, 450, -400, 3000, -650, -130, 70, 1300],
-  interestRate: 1.2, // %
+  owner: 'Edgars Roze',
+  movements: [200, 455.23, -306.5, 25000, -642.21, -133.9, 79.97, 1300],
+  interestRate: 1.2,
   pin: 1111,
+
+  movementsDates: [
+    '2021-11-18T21:31:17.178Z',
+    '2021-12-23T07:42:02.383Z',
+    '2022-01-28T09:15:04.904Z',
+    '2022-04-01T10:17:24.185Z',
+    '2022-05-08T14:11:59.604Z',
+    '2022-09-11T17:01:17.194Z',
+    '2022-09-13T23:36:17.929Z',
+    '2022-09-12T10:51:36.790Z',
+  ],
+  currency: 'EUR',
+  locale: 'lv-LV',
 };
 
 const account2 = {
-  owner: 'Jessica Davis',
+  owner: 'Ilona Roze',
   movements: [5000, 3400, -150, -790, -3210, -1000, 8500, -30],
   interestRate: 1.5,
   pin: 2222,
+
+  movementsDates: [
+    '2021-11-01T13:15:33.035Z',
+    '2021-11-30T09:48:16.867Z',
+    '2021-12-25T06:04:23.907Z',
+    '2022-01-25T14:18:46.235Z',
+    '2022-02-05T16:33:06.386Z',
+    '2022-04-10T14:43:26.374Z',
+    '2022-06-25T18:49:59.371Z',
+    '2022-09-13T12:01:20.894Z',
+  ],
+  currency: 'USD',
+  locale: 'en-US',
 };
 
-const account3 = {
-  owner: 'Steven Thomas Williams',
-  movements: [200, -200, 340, -300, -20, 50, 400, -460],
-  interestRate: 0.7,
-  pin: 3333,
-};
+const accounts = [account1, account2];
 
-const account4 = {
-  owner: 'Sarah Smith',
-  movements: [430, 1000, 700, 50, 90],
-  interestRate: 1,
-  pin: 4444,
-};
-
-const accounts = [account1, account2, account3, account4];
-
-// Elements
+//? ELEMENTS
 const labelWelcome = document.querySelector('.welcome');
 const labelDate = document.querySelector('.date');
 const labelBalance = document.querySelector('.balance__value');
@@ -60,45 +71,9 @@ const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
-const displayMovements = function (movements, sort = false) {
-  containerMovements.innerHTML = ''; // empty the movements container..
-  //? with movements.slice() = copy array, not modify original!
-  const movSort = sort ? movements.slice().sort((a, b) => a - b) : movements;
+////* FUNCTIONALITY
 
-  movSort.forEach(function (mov, i) {
-    const type = mov > 0 ? 'deposit' : 'withdrawal';
-    const html = `<div class="movements__row">
-    <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
-    <div class="movements__date">3 days ago</div>
-    <div class="movements__value">${mov}€</div>
-  </div>`;
-    // add html string with html code:
-    containerMovements.insertAdjacentHTML('afterbegin', html);
-  });
-};
-
-const calcAndDisplayBalance = function (acc) {
-  acc.balance = acc.movements.reduce((acc, mov) => acc + mov, 0);
-  labelBalance.textContent = `${acc.balance} €`;
-};
-const calcAndDisplaySummary = function (acc) {
-  const incomes = acc.movements
-    .filter(mov => mov > 0)
-    .reduce((acc, mov) => acc + mov, 0);
-  labelSumIn.textContent = `${incomes}€`;
-  const out = acc.movements
-    .filter(mov => mov < 0)
-    .reduce((acc, mov) => acc + mov);
-  labelSumOut.textContent = `${Math.abs(out)}€`;
-  const interest = acc.movements
-    .filter(mov => mov > 0)
-    .map(deposit => (deposit * acc.interestRate) / 100)
-    .filter((int, i, arr) => {
-      return int > 1;
-    })
-    .reduce((acc, deposti) => acc + deposti, 0);
-  labelSumInterest.textContent = `${interest}€`;
-};
+//?CREATE USERNAME FOR OWNERS = Edgars Roze =er;
 
 const createUserNames = function (accs) {
   accs.forEach(function (ele) {
@@ -110,6 +85,87 @@ const createUserNames = function (accs) {
   });
 };
 createUserNames(accounts);
+
+//? LOGIN
+
+let currenAccount;
+btnLogin.addEventListener('click', function (e) {
+  //Prevent form from btn submiting( when click on btn page is reloaded and we can' see info)
+  // So I use .preventDefault();
+  e.preventDefault();
+  //Assign loged in acc to variable, so i can use it in others func.
+  currenAccount = accounts.find(
+    acc => acc.username === inputLoginUsername.value
+  );
+  // currentAccount will be compared if its exsist '?' <= optional chaining and if its same  as input!
+  if (currenAccount?.pin === Number(inputLoginPin.value)) {
+    //?DISPLAY USER AND WELCOME MSG
+
+    labelWelcome.textContent = `Welcome back ${
+      // split name and username , takes first arr element! => name
+      currenAccount.owner.split(' ')[0]
+    }`;
+    //make user content visible
+    containerApp.style.opacity = 100;
+    //clear input fields after login
+    inputLoginUsername.value = inputLoginPin.value = '';
+    inputClosePin.blur();
+
+    //UPDATE UI func call; => mov/summ/balance func
+    updateUI(currenAccount);
+  }
+});
+
+//?MOVEMENTS
+// sort =false ->default value.
+const displayMovements = function (movements, sort = false) {
+  containerMovements.innerHTML = ''; // empty the movements container..
+  // with movements.slice() = copy array, not modify original!
+  const movSort = sort ? movements.slice().sort((a, b) => a - b) : movements;
+  //! Not explained
+  movSort.forEach(function (mov, i) {
+    const type = mov > 0 ? 'deposit' : 'withdrawal';
+    const html = `<div class="movements__row">
+    <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
+    <div class="movements__date">3 days ago</div>
+    <div class="movements__value">${mov}€</div>
+  </div>`;
+    // add html string with html code in to  movements container as first child:
+    containerMovements.insertAdjacentHTML('afterbegin', html);
+  });
+};
+//? BALANCE
+const calcAndDisplayBalance = function (acc) {
+  //calc owerall balance and create obj propertie with it
+  acc.balance = acc.movements.reduce((acc, mov) => acc + mov, 0);
+  //display balance on page
+  labelBalance.textContent = `${acc.balance} €`;
+};
+//?SUMMARY
+const calcAndDisplaySummary = function (acc) {
+  //IN
+  const incomes = acc.movements
+    .filter(mov => mov > 0)
+    .reduce((acc, mov) => acc + mov, 0);
+  labelSumIn.textContent = `${incomes}€`;
+  //OUT
+  const out = acc.movements
+    .filter(mov => mov < 0)
+    .reduce((acc, mov) => acc + mov);
+  labelSumOut.textContent = `${Math.abs(out)}€`;
+  //INTERESTS
+  const interest = acc.movements
+    .filter(mov => mov > 0)
+    .map(deposit => (deposit * acc.interestRate) / 100)
+    .filter((int, i, arr) => {
+      return int > 1;
+    })
+    .reduce((acc, deposti) => acc + deposti, 0);
+  labelSumInterest.textContent = `${interest}€`;
+};
+
+//? UPDATE CURRENT AC UI MOV/SUM/BAL
+
 const updateUI = function (acc) {
   //Display movements
   displayMovements(acc.movements);
@@ -119,37 +175,14 @@ const updateUI = function (acc) {
   calcAndDisplaySummary(acc);
 };
 
-//Event handler
-let currenAccount;
-btnLogin.addEventListener('click', function (e) {
-  //Prevent form from submiting
-  e.preventDefault();
-  currenAccount = accounts.find(
-    acc => acc.username === inputLoginUsername.value
-  );
-  //* currentAccount will be compared if its exsist '?' <= optional chaining
-  if (currenAccount?.pin === Number(inputLoginPin.value)) {
-    //Display UI and message
-    labelWelcome.textContent = `Welcome back ${
-      currenAccount.owner.split(' ')[0]
-    }`;
-    containerApp.style.opacity = 100;
-    //clear input fields after login
-    inputLoginUsername.value = inputLoginPin.value = '';
-    inputClosePin.blur();
-
-    //*Update UI
-    updateUI(currenAccount);
-  }
-});
-//* Transfer implementing
+//?TRANSFER BTN
 btnTransfer.addEventListener('click', function (e) {
   e.preventDefault();
-  const amount = Number(inputTransferAmount.value);
+  const amount = +inputTransferAmount.value;
   const reciverAcc = accounts.find(
     acc => acc.username === inputTransferTo.value
   );
-  //* clear fields after transfer
+  //clear fields after transfer
   inputTransferAmount.value = inputTransferTo.value = '';
   if (
     amount > 0 &&
@@ -206,5 +239,3 @@ btnSort.addEventListener('click', function (e) {
   //For sorting
   sorted = !sorted;
 });
-
-
